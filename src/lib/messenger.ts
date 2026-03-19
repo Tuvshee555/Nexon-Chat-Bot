@@ -1,10 +1,12 @@
 import fetch from "node-fetch";
-const PAGE_TOKEN = process.env.PAGE_ACCESS_TOKEN;
-if (!PAGE_TOKEN) throw new Error("PAGE_ACCESS_TOKEN not set");
 
-export async function sendTextMessage(recipientId: string, text: string) {
+export async function sendTextMessage(
+  recipientId: string,
+  text: string,
+  token: string,
+) {
   const res = await fetch(
-    `https://graph.facebook.com/v16.0/me/messages?access_token=${PAGE_TOKEN}`,
+    `https://graph.facebook.com/v16.0/me/messages?access_token=${token}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -22,9 +24,9 @@ export async function sendTextMessage(recipientId: string, text: string) {
   }
 }
 
-export async function sendTypingOn(recipientId: string) {
+export async function sendTypingOn(recipientId: string, token: string) {
   const res = await fetch(
-    `https://graph.facebook.com/v16.0/me/messages?access_token=${PAGE_TOKEN}`,
+    `https://graph.facebook.com/v16.0/me/messages?access_token=${token}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },

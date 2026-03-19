@@ -10,6 +10,11 @@ import { isDuplicateReply, sanitizeAssistantReply } from "../../lib/reply";
 
 const FB_VERIFY = process.env.VERIFY_TOKEN;
 const IG_VERIFY = process.env.VERIFY_TOKEN;
+const PAGE_TOKENS: Record<string, string | undefined> = {
+  "614185355370930": process.env.TOKEN_PAGE_1,
+  "601173946571365": process.env.TOKEN_PAGE_2,
+};
+const FALLBACK_SEND_ERROR_MESSAGE = "Уучлаарай, мессеж илгээхэд алдаа гарлаа.";
 
 type Platform = "facebook" | "instagram";
 
@@ -80,11 +85,107 @@ function markRecentIncomingText(
   return true;
 }
 
+async function sendPlatformMessage(
+  platform: Platform,
+  senderId: string,
+  text: string,
+  token: string | undefined,
+  pageId: string,
+  igUserId?: string | null,
+) {
+  if (!token) {
+    console.error("Missing page access token", {
+      platform,
+      pageId,
+      senderId,
+    });
+    console.error(
+      "Fallback message was not sent because no token is configured",
+      {
+        platform,
+        pageId,
+        senderId,
+      },
+    );
+    return false;
+  }
+
+  try {
+    if (platform === "facebook") {
+      await sendTextMessage(senderId, text, token);
+    } else {
+      await sendIgTextMessage(igUserId || "", senderId, text, token);
+    }
+    return true;
+  } catch (error) {
+    console.error("Primary platform send failed", {
+      platform,
+      pageId,
+      senderId,
+      error,
+    });
+
+    if (text === FALLBACK_SEND_ERROR_MESSAGE) {
+      return false;
+    }
+
+    try {
+      if (platform === "facebook") {
+        await sendTextMessage(senderId, FALLBACK_SEND_ERROR_MESSAGE, token);
+      } else {
+        await sendIgTextMessage(
+          igUserId || "",
+          senderId,
+          FALLBACK_SEND_ERROR_MESSAGE,
+          token,
+        );
+      }
+    } catch (fallbackError) {
+      console.error("Fallback platform send failed", {
+        platform,
+        pageId,
+        senderId,
+        fallbackError,
+      });
+    }
+
+    return false;
+  }
+}
+
+async function sendFacebookTypingIndicator(
+  recipientId: string,
+  token: string | undefined,
+  pageId: string,
+) {
+  if (!token) {
+    console.error("Missing page access token for typing indicator", {
+      platform: "facebook",
+      pageId,
+      recipientId,
+    });
+    return;
+  }
+
+  try {
+    await sendTypingOn(recipientId, token);
+  } catch (error) {
+    console.error("Messenger typing_on failed", {
+      platform: "facebook",
+      pageId,
+      recipientId,
+      error,
+    });
+  }
+}
+
 async function handleMessage(
   platform: Platform,
   senderId: string,
   text: string,
+  pageId: string,
   igUserId?: string | null,
+  token?: string,
 ) {
   const limit = rateLimit(
     `${platform === "facebook" ? "fb" : "ig"}:${senderId}`,
@@ -93,12 +194,20 @@ async function handleMessage(
   );
   if (!limit.allowed) {
     const waitMsg = "Түр хүлээнэ үү, дараа оролдоно уу.";
-    if (platform === "facebook") await sendTextMessage(senderId, waitMsg);
-    else await sendIgTextMessage(igUserId || "", senderId, waitMsg);
+    await sendPlatformMessage(
+      platform,
+      senderId,
+      waitMsg,
+      token,
+      pageId,
+      igUserId,
+    );
     return;
   }
 
-  if (platform === "facebook") await sendTypingOn(senderId);
+  if (platform === "facebook") {
+    await sendFacebookTypingIndicator(senderId, token, pageId);
+  }
 
   const { systemPrompt, business } = await readBusinessData();
   const sessionId = `${platform}:${senderId}`;
@@ -132,8 +241,14 @@ async function handleMessage(
   appendMessage(sessionId, "assistant", safeReply);
   recentReplies.set(recentReplyKey, { text: safeReply, timestamp: Date.now() });
 
-  if (platform === "facebook") await sendTextMessage(senderId, safeReply);
-  else await sendIgTextMessage(igUserId || "", senderId, safeReply);
+  await sendPlatformMessage(
+    platform,
+    senderId,
+    safeReply,
+    token,
+    pageId,
+    igUserId,
+  );
 }
 
 export default async function handler(
@@ -161,6 +276,9 @@ export default async function handler(
         const platform: Platform =
           body.object === "page" ? "facebook" : "instagram";
         for (const entry of body.entry || []) {
+          const pageId = entry.id;
+          const token = PAGE_TOKENS[pageId];
+
           for (const event of entry.messaging || []) {
             if (!event.message || !event.sender) continue;
             if (event.message.is_echo) continue;
@@ -201,7 +319,14 @@ export default async function handler(
 
             activeConversations.add(conversationKey);
             try {
-              await handleMessage(platform, senderId, text, igUserId);
+              await handleMessage(
+                platform,
+                senderId,
+                text,
+                pageId,
+                igUserId,
+                token,
+              );
             } finally {
               activeConversations.delete(conversationKey);
             }
