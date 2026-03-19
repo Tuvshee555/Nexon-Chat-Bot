@@ -8,8 +8,8 @@ import { appendMessage, buildPrompt, getHistory } from "../../lib/conversation";
 import { fixMojibake } from "../../lib/encoding";
 import { isDuplicateReply, sanitizeAssistantReply } from "../../lib/reply";
 
-const FB_VERIFY = process.env.FACEBOOK_VERIFY_TOKEN;
-const IG_VERIFY = process.env.INSTAGRAM_VERIFY_TOKEN;
+const FB_VERIFY = process.env.VERIFY_TOKEN;
+const IG_VERIFY = process.env.VERIFY_TOKEN;
 
 type Platform = "facebook" | "instagram";
 
@@ -170,11 +170,17 @@ export default async function handler(
             if (!text) continue;
             const eventKey = buildEventKey(platform, senderId, event);
             if (!markEventProcessed(eventKey)) {
-              console.log("Skipping duplicate webhook event", { platform, eventKey });
+              console.log("Skipping duplicate webhook event", {
+                platform,
+                eventKey,
+              });
               continue;
             }
             if (!markRecentIncomingText(platform, senderId, text)) {
-              console.log("Skipping repeated inbound text", { platform, senderId });
+              console.log("Skipping repeated inbound text", {
+                platform,
+                senderId,
+              });
               continue;
             }
 
