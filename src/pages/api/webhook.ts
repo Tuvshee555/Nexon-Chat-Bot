@@ -12,8 +12,8 @@ import { isDuplicateReply, sanitizeAssistantReply } from "../../lib/reply";
 const FB_VERIFY = process.env.VERIFY_TOKEN;
 const IG_VERIFY = process.env.VERIFY_TOKEN;
 const PAGE_TOKENS: Record<string, string | undefined> = {
-  "614185355370930": process.env.TOKEN_PAGE_1,
-  "601173946571365": process.env.TOKEN_PAGE_2,
+  "614185355370930": process.env.TOKEN_PAGE_1, //chinese page
+  "601173946571365": process.env.TOKEN_PAGE_2, //yeti academi
 };
 const FALLBACK_SEND_ERROR_MESSAGE = "Уучлаарай, мессеж илгээхэд алдаа гарлаа.";
 
@@ -307,6 +307,16 @@ export default async function handler(
       const body = req.body;
 
       console.log("WEBHOOK BODY:", JSON.stringify(body, null, 2));
+
+      console.log("OBJECT:", body.object);
+      for (const entry of body.entry || []) {
+        console.log("ENTRY ID:", entry.id);
+        console.log("RECIPIENT ID:", entry.messaging?.[0]?.recipient?.id);
+        console.log(
+          "FIRST EVENT:",
+          JSON.stringify(entry.messaging?.[0], null, 2),
+        );
+      }
 
       if (body.object === "page" || body.object === "instagram") {
         const platform: Platform =
