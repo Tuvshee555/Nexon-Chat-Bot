@@ -7,7 +7,7 @@ export async function sendTextMessage(
   token: string,
 ) {
   const res = await fetch(
-    `https://graph.facebook.com/v19.0/${igUserId}/messages?access_token=${token}`,
+    `https://graph.facebook.com/v19.0/me/messages?access_token=${token}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
