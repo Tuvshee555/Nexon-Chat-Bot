@@ -52,7 +52,8 @@ export default async function handler(
       history,
       userText: text,
     });
-    const reply = sanitizeAssistantReply(fixMojibake(await askOpenAI(prompt)));
+    const result = await askOpenAI(prompt);
+    const reply = sanitizeAssistantReply(fixMojibake(result.text));
     appendMessage(sessionId, "user", text);
     appendMessage(sessionId, "assistant", reply);
     return res.status(200).json({ reply });

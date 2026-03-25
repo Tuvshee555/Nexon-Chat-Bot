@@ -8,6 +8,7 @@ import { appendMessage, buildPrompt, getHistory } from "../../lib/conversation";
 import { maybeGetDirectReply } from "../../lib/directReplies";
 import { fixMojibake } from "../../lib/encoding";
 import { isDuplicateReply, sanitizeAssistantReply } from "../../lib/reply";
+import { trackMessageUsage } from "../../lib/usageTracker";
 
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 const PAGE_ID = "601173946571365";
@@ -199,7 +200,43 @@ async function handleMessage(
     await sendFacebookTypingIndicator(senderId, token, pageId);
   }
 
-  const { systemPrompt, business, knowledge } = await readBusinessData();
+  // --- Usage tracking: pre-check before AI call ---
+  const usagePlatform = platform === "instagram" ? "instagram" : "messenger";
+  let usage: Awaited<ReturnType<typeof trackMessageUsage>> | null = null;
+  try {
+    usage = await trackMessageUsage({
+      pageId,
+      platform: usagePlatform,
+      promptTokens: 0,
+      completionTokens: 0,
+      totalTokens: 0,
+    });
+  } catch (err) {
+    console.error("Usage pre-check failed, continuing anyway", { pageId, err });
+  }
+
+  if (usage && !usage.allowed) {
+    if (usage.reason === "Out of messages") {
+      await sendPlatformMessage(
+        platform,
+        senderId,
+        "Уучлаарай, мессежийн лимит дууссан байна.",
+        token,
+        pageId,
+        igUserId,
+      );
+    }
+    return;
+  }
+
+  // --- Load business data (knowledge from file, system prompt from DB if available) ---
+  const { systemPrompt: fileSystemPrompt, business, knowledge } =
+    await readBusinessData();
+  const dbBotPrompt =
+    usage && usage.allowed ? usage.bot_prompt : "";
+  const effectiveSystemPrompt =
+    dbBotPrompt || fileSystemPrompt || "You are a Mongolian AI receptionist.";
+
   const sessionId = `${platform}:${senderId}`;
   const history = getHistory(sessionId);
   const intent = detectIntent(text);
@@ -241,7 +278,7 @@ async function handleMessage(
   }
 
   const prompt = buildPrompt({
-    systemPrompt: systemPrompt || "You are a Mongolian AI receptionist.",
+    systemPrompt: effectiveSystemPrompt,
     business: business || {},
     history,
     userText: text,
@@ -249,7 +286,23 @@ async function handleMessage(
 
   let aiReply: string;
   try {
-    aiReply = await askOpenAI(prompt);
+    const result = await askOpenAI(prompt);
+    aiReply = result.text;
+
+    // --- Usage tracking: log actual token usage after AI call ---
+    if (usage && usage.allowed) {
+      try {
+        await trackMessageUsage({
+          pageId,
+          platform: usagePlatform,
+          promptTokens: result.usage.prompt_tokens,
+          completionTokens: result.usage.completion_tokens,
+          totalTokens: result.usage.total_tokens,
+        });
+      } catch (err) {
+        console.error("Usage post-track failed", { pageId, err });
+      }
+    }
   } catch {
     aiReply = "Уучлаарай, систем түр алдаатай байна.";
   }

@@ -26,7 +26,18 @@ function extractOutputText(data: any): string {
   return chunks.join("").trim();
 }
 
-export async function askOpenAI(prompt: string) {
+export type OpenAIUsage = {
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+};
+
+export type OpenAIResult = {
+  text: string;
+  usage: OpenAIUsage;
+};
+
+export async function askOpenAI(prompt: string): Promise<OpenAIResult> {
   const res = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
@@ -53,5 +64,12 @@ export async function askOpenAI(prompt: string) {
   const raw =
     extractOutputText(data) ||
     "Уучлаарай, систем түр алдаатай байна.";
-  return fixMojibake(raw);
+
+  const usage: OpenAIUsage = {
+    prompt_tokens: data?.usage?.input_tokens ?? 0,
+    completion_tokens: data?.usage?.output_tokens ?? 0,
+    total_tokens: data?.usage?.total_tokens ?? 0,
+  };
+
+  return { text: fixMojibake(raw), usage };
 }
