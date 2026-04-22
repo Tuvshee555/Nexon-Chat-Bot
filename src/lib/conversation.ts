@@ -44,7 +44,7 @@ export function buildPrompt(options: {
   systemPrompt: string;
   business: {
     name?: string;
-    knowledgeBase?: any; // now supports context object
+    knowledgeBase?: any;
   };
   history: ChatMessage[];
   userText: string;
@@ -52,85 +52,75 @@ export function buildPrompt(options: {
   const { systemPrompt, business, history, userText } = options;
   const lines: string[] = [];
 
-  // 🔥 limit history (important)
   const recentHistory = history.slice(-6);
 
   lines.push(systemPrompt.trim());
   lines.push("");
 
   lines.push("Reply rules:");
-  lines.push("- Answer in Mongolian.");
-  lines.push("- Keep replies short (1-3 sentences). If the user asks multiple questions in one message, answer each question separately but concisely.");
-  lines.push("- Use only the provided context.");
-  lines.push("- Do not guess missing information.");
-  lines.push("- If unsure, say you will connect to a human.");
+  lines.push("- ALWAYS reply in Mongolian only. Never use English or any other language in your reply, even if the user writes in English or mixes languages. Translate your answer to Mongolian before sending.");
+  lines.push("- Keep replies short (1-3 sentences). If the user asks multiple questions, answer each briefly.");
+  lines.push("- Use only the provided context. Do not invent features, prices, or integrations.");
+  lines.push("- If unsure, say you will connect them to a human and share the contact email or Messenger link.");
 
-  lines.push("- Always guide the user toward a suitable program.");
+  lines.push("- Always guide the user toward a plan that fits their size.");
   lines.push(
-    "- If the user is unsure, recommend the Standard Program (12 months, 5,500,000₮) as the default option.",
-  );
-
-  lines.push(
-    "- If the user asks about full program, prioritize the Standard Program before mentioning others.",
-  );
-
-  lines.push(
-    "- If the user mentions money problems, suggest the cheapest module first (e.g., 599,999₮ IELTS course).",
+    "- If the user is unsure, recommend Growth (120,000₮/сар) as the most popular default, or Free if they want to just try.",
   );
   lines.push(
-    "- Do not suggest expensive programs when the user shows budget concern.",
+    "- If the user mentions budget concerns, suggest Free (0₮) first, then Starter (50,000₮/сар) as the cheapest paid step.",
+  );
+  lines.push(
+    "- Do not push Pro or Enterprise unless the user mentions a larger team, high message volume, or custom needs.",
   );
 
   lines.push(
-    "- When answering about programs, include name, duration, and price clearly.",
-  );
-
-  lines.push("- Do not guarantee scholarship success under any circumstances.");
-  lines.push(
-    "- Never recommend the 1,500,000₮ high-school USA guidance offer until the user's grade or age is known.",
+    "- When answering about plans, include name, price, and contact limit clearly.",
   );
   lines.push(
-    "- That 1,500,000₮ offer is only for 9-12th grade students or age 16+, and must not be suggested to grade 8 and below.",
+    "- If the user asks about annual billing, mention the 20% discount and 14-day free trial on annual plans.",
   );
   lines.push(
-    "- If the user may fit that 1,500,000₮ offer but their grade/age is unknown, ask one short question: which grade or age.",
+    "- If the user asks about overage or surprise bills, confirm Nexon has fixed pricing with no automatic overage charges; suggest upgrading if their contact limit fills up.",
   );
   lines.push(
-    "- Northeastern Illinois University information only proves authorized recruitment representation; never promise admission, visa approval, or guaranteed travel to the USA.",
+    "- There is no setup fee right now (SETUP_FEE is 0). Do not claim otherwise.",
   );
   lines.push(
-    "- English only is 200,000₮, math only is 200,000₮, and both together are 350,000₮.",
+    "- Supported channels are Instagram, Messenger, Telegram, WhatsApp, and a website chat widget. Free plan only gets 1 channel; Starter+ unlocks all five.",
   );
   lines.push(
-    "- If the user asks about discount eligibility, ask whether they have volunteer work, sports achievements, or previous study at YETI.",
+    "- When asked about ManyChat: position Nexon as Mongolia-first — Mongolian language, QPay payments, Telegram support (ManyChat has none), AI Agent (GPT-4) included in base plans (ManyChat charges extra), <1h Mongolian-language support.",
   );
   lines.push(
-    "- The 50% discount applies when the user has volunteer work, sports achievements, or has studied at YETI before, but final confirmation must be done by a human staff member.",
-  );
-
-  lines.push(
-    "- Only ask for name and phone number when the user shows clear intent to join.",
-  );
-  lines.push("- Do not repeatedly ask for contact information.");
-  lines.push(
-    "- When the user clearly wants to join or register, send the registration form link from the knowledge base and mention the follow-up steps after registration.",
+    "- QPay works two ways: (1) customers pay Nexon in QPay or bank transfer; (2) from Growth plan up, businesses can collect QPay payments from their own customers inside the chat flow (in-flow QPay).",
   );
   lines.push(
-    "- For the 1+1 family program, employee English class, kids summer program, and parent-child/art-therapy program, answer with the specific program details from the knowledge base instead of generic English course information.",
+    "- AI Agent means GPT-4 full-conversation replies, included free from Starter up.",
+  );
+  lines.push(
+    "- Webhooks and Zapier are available from Growth up (6000+ app integrations via Zapier).",
+  );
+  lines.push(
+    "- Pro+ plans include Mongolian chat support with <1 hour response time; Starter/Growth get email support.",
   );
 
   lines.push(
-    "- If the question is unclear, ask one short clarifying question.",
+    "- Only ask for name/phone/email when the user shows clear intent to sign up or asks for a call-back.",
+  );
+  lines.push(
+    "- When the user clearly wants to register, point them to the /register page and mention they can start on Free.",
+  );
+  lines.push(
+    "- For custom workflows, integrations, or large rollouts, point the user to the Enterprise plan and offer to connect them to the Nexon team (email: nexondigitalnova@gmail.com, phone: +976 8618 5769).",
+  );
+
+  lines.push(
+    "- If the question is unclear, ask one short clarifying question (e.g. which channel, how many messages/day, team size).",
   );
   lines.push("- Do not repeat the same phrase in every response.");
   lines.push(
-    "- Do not ask for contact information unless the user clearly wants to join.",
-  );
-  lines.push(
-    "- If the user input is unclear or random, guide them instead of trying to sell.",
-  );
-  lines.push(
-    "- When answering sensitive questions (like scholarship), answer first, then optionally suggest a program.",
+    "- If the user input is random or off-topic, politely redirect to what Nexon does (AI messaging automation for Instagram/Messenger/Telegram).",
   );
 
   lines.push("");
@@ -138,7 +128,6 @@ export function buildPrompt(options: {
 
   lines.push("Context:");
 
-  // 🔥 supports BOTH string or object (safe)
   if (typeof business?.knowledgeBase === "string") {
     lines.push(business.knowledgeBase);
   } else {

@@ -65,9 +65,9 @@ export type BusinessDataFile = {
 };
 
 const KNOWLEDGE_PATH = path.join(process.cwd(), "data", "business.json");
-const BUSINESS_NAME = "YETI Academy";
+const BUSINESS_NAME = "Nexon";
 const DEFAULT_SYSTEM_PROMPT =
-  "You are the official AI receptionist for YETI Academy. Reply in clear Mongolian. Use only the approved knowledge base. Never guess, never use contract-only or internal-only information, and never promise scholarships unless the knowledge base says so.";
+  "You are the official AI receptionist for Nexon, an AI messaging platform for businesses in Mongolia (Instagram, Messenger, Telegram, WhatsApp automation). ALWAYS reply in Mongolian only, regardless of the language the user writes in — never reply in English or any other language, even if the user writes in English. Use only the approved knowledge base. Never guess prices or features, never promise custom work unless the knowledge base says so, and direct unclear cases to a human via the contact channels.";
 const DEFAULT_KNOWLEDGE: KnowledgeData = {
   packages: [],
   modules: [],
@@ -252,49 +252,52 @@ export function detectIntent(message: string): string {
   }
 
   if (
-    m.includes("ielts") ||
-    m.includes("toefl") ||
-    m.includes("хөтөлбөр") ||
-    m.includes("сургалт") ||
-    m.includes("суралц") ||
-    m.includes("course") ||
-    m.includes("program")
+    m.includes("багц") ||
+    m.includes("plan") ||
+    m.includes("starter") ||
+    m.includes("growth") ||
+    m.includes("pro") ||
+    m.includes("enterprise") ||
+    m.includes("free") ||
+    m.includes("үнэгүй")
   ) {
     return "program";
   }
 
   if (
-    m.includes("тэтгэлэг") ||
-    m.includes("visa") ||
-    m.includes("essay") ||
-    m.includes("document") ||
-    m.includes("scholarship")
+    m.includes("feature") ||
+    m.includes("функц") ||
+    m.includes("flow") ||
+    m.includes("broadcast") ||
+    m.includes("sequence") ||
+    m.includes("comment")
   ) {
-    return "scholarship";
+    return "program";
   }
 
   if (
     m.includes("утас") ||
-    m.includes("хаяг") ||
+    m.includes("phone") ||
+    m.includes("email") ||
+    m.includes("и-мэйл") ||
+    m.includes("мэйл") ||
     m.includes("facebook") ||
-    m.includes("байршил") ||
-    m.includes("contact")
+    m.includes("instagram") ||
+    m.includes("telegram") ||
+    m.includes("contact") ||
+    m.includes("холбоо")
   ) {
     return "contact";
   }
 
   if (
-    m.includes("элс") ||
     m.includes("бүртг") ||
-    m.includes("form") ||
-    m.includes("link") ||
-    m.includes("линк") ||
-    m.includes("join") ||
     m.includes("register") ||
-    m.includes("registration") ||
-    m.includes("enroll") ||
+    m.includes("signup") ||
     m.includes("sign up") ||
-    m.includes("signup")
+    m.includes("join") ||
+    m.includes("эхл") ||
+    m.includes("start")
   ) {
     return "join";
   }
