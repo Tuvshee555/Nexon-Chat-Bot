@@ -10,9 +10,9 @@ import { fixMojibake } from "../../lib/encoding";
 import { isDuplicateReply, sanitizeAssistantReply } from "../../lib/reply";
 import { trackMessageUsage } from "../../lib/usageTracker";
 
-const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
-const PAGE_ID = "601173946571365";
-const FACEBOOK_TOKEN = process.env.TOKEN_PAGE!;
+const VERIFY_TOKEN = process.env.VERIFY_TOKEN?.trim();
+const EXPECTED_FACEBOOK_PAGE_ID = process.env.FACEBOOK_PAGE_ID?.trim();
+const FACEBOOK_TOKEN = process.env.TOKEN_PAGE?.trim();
 const FALLBACK_SEND_ERROR_MESSAGE = "Уучлаарай, мессеж илгээхэд алдаа гарлаа.";
 
 type Platform = "facebook" | "instagram";
@@ -25,6 +25,7 @@ const recentIncomingTexts = new Map<string, number>();
 const recentReplies = new Map<string, { text: string; timestamp: number }>();
 
 function verifyToken(token: unknown) {
+  if (!VERIFY_TOKEN || typeof token !== "string") return false;
   return token === VERIFY_TOKEN;
 }
 
@@ -343,6 +344,10 @@ export default async function handler(
   if (req.method === "POST") {
     try {
       const body = req.body;
+      console.log("Incoming webhook request", {
+        object: body?.object,
+        entryCount: Array.isArray(body?.entry) ? body.entry.length : 0,
+      });
 
       if (body.object === "page" || body.object === "instagram") {
         for (const entry of body.entry || []) {
@@ -364,9 +369,14 @@ export default async function handler(
 
             if (!senderId || !text) continue;
 
-            if (body.object === "page" && pageId !== PAGE_ID) {
+            if (
+              body.object === "page" &&
+              EXPECTED_FACEBOOK_PAGE_ID &&
+              pageId !== EXPECTED_FACEBOOK_PAGE_ID
+            ) {
               console.log("Skipping event for unexpected page", {
                 pageId,
+                expectedPageId: EXPECTED_FACEBOOK_PAGE_ID,
                 senderId,
               });
               continue;
@@ -418,7 +428,7 @@ export default async function handler(
                 senderId,
                 text,
                 pageId,
-                platform === "instagram" ? PAGE_ID : undefined,
+                platform === "instagram" ? pageId : undefined,
                 token,
               );
             } finally {

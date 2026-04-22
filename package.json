@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "fb:subscribe-page": "node scripts/subscribe-page-app.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.100.0",
